@@ -1,0 +1,8 @@
+spec:
+  desired_state: online
+  conda: ''
+  source: git://github.com/samismos/traffic-accidents-mlops.git#refs/heads/main
+  origin_url: git://github.com/samismos/traffic-accidents-mlops.git#refs/heads/main
+metadata:
+  name: music-predictor
+kind: project
