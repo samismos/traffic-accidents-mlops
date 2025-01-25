@@ -19,9 +19,18 @@ project = mlrun.get_or_create_project(name=os.getenv('PROJECT_NAME'), context=".
 function = mlrun.code_to_function(
     name=os.getenv('FUNCTION_NAME'), 
     kind="job",
-    filename="script.py"
+    filename="decision_tree_classifier.py" ## Change to target filename / read from env
 )
 
+# Pass on the env context to the function
+env = {
+    "PROJECT_NAME": os.getenv("PROJECT_NAME"),
+    "DATASET": os.getenv("DATASET_URI"),
+    "FUNCTION_NAME": os.getenv("FUNCTION_NAME"),
+    "HANDLER": os.getenv("HANDLER"),
+    "MODEL_TAG": os.getenv("MODEL_TAG"),
+    "MODEL_NAME": os.getenv("MODEL_NAME"),
+}
 
 # Run the function
-function.run(name="function-test", handler=os.getenv('HANDLER'))  # Specify the function to run
+function.run(handler=os.getenv('HANDLER'), params=env)  # Specify the function to run

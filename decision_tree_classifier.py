@@ -51,36 +51,29 @@ def model_server_init(project_name, model_path):
 #     serving_fn.invoke(path=f"/v2/models/{model_key}/infer", body=my_data)
 
 
-def entrypoint(context: mlrun.MLClientCtx, **args): 
-    
-    project_name = args.get('PROJECT_NAME')
+def entrypoint(context: mlrun.MLClientCtx, **args):
+    # Retrieve arguments with defaults
     dataset = args.get('DATASET')
-    model_tag = args.get('MODEL_TAG')
     model_name = args.get('MODEL_NAME')
-    function_name = args.get('FUNCTION_NAME')
-    handler = args.get('HANDLER')
     
+    # Load dataset
+    music_data = mlrun.get_dataitem(dataset).as_df()
     
-    # Initialize the encoder
-    encoder = OneHotEncoder()
-    
-    music_data = mlrun.get_dataitem('store://datasets/traffic-accidents/music#0:latest').as_df()
+    # Prepare data
     X = music_data.drop(columns=['genre'])
     y = music_data['genre']
-    print(music_data.shape)  # Should show (rows, columns)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-    y_test_encoded = encoder.fit_transform(y_test.values.reshape(-1, 1)).toarray()
-    y_test_encoded = np.argmax(y_test_encoded, axis=1)
-    model = DecisionTreeClassifier()
-    print(f"X_train type: {type(X_train)}")
-    print(f"X_test type: {type(X_test)}")
-    apply_mlrun(model=model, model_name=model_name, x_test=X_test, y_test=y_test_encoded)
     
+    # Initialize and fit model
+    model = DecisionTreeClassifier()
     model.fit(X_train, y_train)
-    # context.log_dataset(key="X_test_dataset", df=X_test)
-    context.log_model(
-        key="music-predictor", body=cloudpickle.dumps(model), model_file="model.pkl"
-    )
+    
+    # Log model
+    context.log_model(key=model_name, body=cloudpickle.dumps(model), model_file="model.pkl")
+    
+    # Apply MLRun (assuming apply_mlrun is defined elsewhere)
+    apply_mlrun(model=model, model_name=model_name, x_test=X_test, y_test=y_test)
+
 
 
     # model_store_path = f"store://models/{project_name}/{function_name}-{handler}_{project_name}#{model_tag}"

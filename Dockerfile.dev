@@ -1,7 +1,5 @@
 FROM python:3.9
 
-WORKDIR /project
-
 # Installing project requirements
 RUN pip install scikit-learn pandas python-dotenv
 RUN pip install mlrun
@@ -9,5 +7,11 @@ RUN pip install mlrun
 # Networking Utils
 RUN apt update
 RUN apt install net-tools iproute2 -y
+
+
+# Creating the non-root user
+RUN useradd -ms /bin/bash mlrun-dev
+WORKDIR /project
+USER mlrun-dev
 
 ENTRYPOINT [ "bash" ]
