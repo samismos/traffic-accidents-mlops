@@ -13,6 +13,10 @@ from dotenv import load_dotenv
 import importlib
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
+from sklearn.preprocessing import LabelEncoder
+import time
+from mlrun import get_dataitem
+from sklearn.metrics import confusion_matrix
 
 def model_server_init(project_name, model_path):
 
@@ -53,39 +57,65 @@ def model_server_init(project_name, model_path):
 
 def entrypoint(context: mlrun.MLClientCtx, **args):
     # Retrieve arguments with defaults
-    dataset = args.get('DATASET')
+    dataset_uri = args.get('DATASET')
     model_name = args.get('MODEL_NAME')
     
     # Load dataset
-    music_data = mlrun.get_dataitem(dataset).as_df()
+    dataset = mlrun.get_dataitem(dataset_uri).as_df()
+
+    # Ensure data is loaded
+    while dataset is None or dataset.empty:
+        print("Waiting for dataset to load...")
+        time.sleep(1)  # Wait for 1 second before checking again
+
+    # Proceed once data is loaded
+    print(f"Data is ready with shape: {dataset.shape}")
+    
+    # Initialize the LabelEncoder
+    label_encoder = LabelEncoder()
+
+    # Assuming 'genre' is the column containing the string labels 'Classical' and 'HipHop'
+    dataset['genre'] = label_encoder.fit_transform(dataset['genre'])
     
     # Prepare data
-    X = music_data.drop(columns=['genre'])
-    y = music_data['genre']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    # print(dataset.head())
+    X = dataset.drop(columns=['genre'])
+    y = dataset['genre']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=10)
     
-    # Initialize and fit model
+    # Initialize model
     model = DecisionTreeClassifier()
+    
+    # Fit model
     model.fit(X_train, y_train)
     
-    # Log model
+    # Evaluate model
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+
+    # Log results manually
+    context.log_results({"accuracy": accuracy})
+
+    # Optionally, log the model as an artifact
     context.log_model(key=model_name, body=cloudpickle.dumps(model), model_file="model.pkl")
+
+    # You can also log other metrics, confusion matrix, etc.
+    # For example, confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    all_classes = np.unique(y)
+    cm = confusion_matrix(y_test, y_pred, labels=all_classes)
     
-    # Apply MLRun (assuming apply_mlrun is defined elsewhere)
-    apply_mlrun(model=model, model_name=model_name, x_test=X_test, y_test=y_test)
+    # Convert confusion matrix to DataFrame for better readability
+    cm_df = pd.DataFrame(cm, index=all_classes, columns=all_classes)
 
-
-
-    # model_store_path = f"store://models/{project_name}/{function_name}-{handler}_{project_name}#{model_tag}"
-    # print(model_store_path)
-    # model_server_init(project_name, model_store_path)
+    # Log confusion matrix as a CSV artifact
+    cm_df.to_csv('/tmp/confusion_matrix.csv')
+    context.log_artifact(
+        'confusion_matrix',
+        local_path='/tmp/confusion_matrix.csv',
+        labels={"framework":"DecisionTreeClassifier"}
+    )
     
-    # print(model_store_path)
-    
-    # decision-tree-classifier.serve_model();
-#     predictions = model.predict(X_test.values)
-
-#     score = accuracy_score(y_test, predictions)
-#     print(score)
-#     print(predictions)
-   
+    # Optionally, print the confusion matrix to the logs
+    print("Confusion Matrix:")
+    print(cm_df)

@@ -8,7 +8,6 @@ RUN pip install mlrun
 RUN apt update
 RUN apt install net-tools iproute2 -y
 
-
 # Creating the non-root user
 RUN useradd -ms /bin/bash mlrun-dev
 WORKDIR /project
