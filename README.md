@@ -9,8 +9,16 @@ Inside the project directory, build the image from the Dockerfile.dev:
 
 ```docker build -f Dockerfile.dev -t mlrun-dev .```
 
-A dev environment can be built with the command below:
+The dev environment can be built with the command below:
 
 ```docker run -it --rm --network host -v "$PWD":/project --name mlrun-dev mlrun-dev```
 
 Note: $PWD is a Windows shorthand for current directory, modify accordingly
+
+Inside the dev environment, you can run the python files which use the MLRun SDK.
+
+###  IMPORTANT 
+Create/update the ```network_config.env``` file, and make sure it includes:
+
+MLRUN_API="<insert_your_api_url_here>"
+ARTIFACT_BASE_PATH=<insert_your_artifact_base_path_here>
