@@ -20,5 +20,6 @@ Inside the dev environment, you can run the python files which use the MLRun SDK
 ###  IMPORTANT 
 Create/update the ```network_config.env``` file, and make sure it includes:
 
-MLRUN_API="<insert_your_api_url_here>"
+MLRUN_API="<insert_your_api_url_here>" 
+
 ARTIFACT_BASE_PATH=<insert_your_artifact_base_path_here>
