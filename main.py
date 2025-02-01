@@ -26,7 +26,7 @@ train = mlrun.code_to_function(
     name="train", 
     kind="job",
     filename="train.py",
-    image="samismos/mlrun-dev",
+    image=os.getenv('TRAIN_IMAGE'),
 )
 
 # Timestamped versioning
@@ -49,10 +49,10 @@ train.run(
     handler=os.getenv('HANDLER'),
     inputs={
         'processed_dataset_uri': os.getenv("PROCESSED_DATA_URI"),
-        'version': version # If omitted, will look for latest version of dataset
+        'version': version
     },
     params={
-        'ALGORITHM': os.getenv("ALGORITHM")
+        'algorithm': os.getenv("ALGORITHM")
     },
     auto_build=True
 )

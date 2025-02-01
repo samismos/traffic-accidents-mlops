@@ -17,15 +17,15 @@ Note: $PWD is a Windows shorthand for current directory, modify accordingly
 
 Inside the dev environment, you can run the python files which use the MLRun SDK.
 
-# Build 'runner' image
+# Build trainer image
 
-The prod environment can be built with the command below:
+The train environment can be built with the command below:
 
-```docker build -f Dockerfile.prod -t samismos/mlrun-dev .```
+```docker build -f Dockerfile.train -t samismos/mlrun-dev:1.7.2 .```
 
 Push image to Docker Hub repository:
 
-```docker push samismos/mlrun-dev:latest```
+```docker push samismos/mlrun-dev:1.7.2```
 
 ###  IMPORTANT 
 Create/update the ```network_config.env``` file, and make sure it includes:
