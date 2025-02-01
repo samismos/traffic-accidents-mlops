@@ -1,0 +1,5 @@
+FROM mlrun/mlrun:1.7.2
+
+RUN pip install lightgbm xgboost 
+
+ENTRYPOINT [ "bash" ]

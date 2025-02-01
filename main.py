@@ -18,40 +18,41 @@ project = mlrun.get_or_create_project(name=os.getenv('PROJECT_NAME'), context=".
 ingest = mlrun.code_to_function(
     name="ingest", 
     kind="job",
-    filename="ingest.py" ## Change to target filename / read from env
+    filename="ingest.py"
 )
 
 # Convert the Python script to a function
 train = mlrun.code_to_function(
     name="train", 
     kind="job",
-    filename="decision_tree_classifier.py" ## Change to target filename / read from env
+    filename="train.py",
+    image="samismos/mlrun-dev",
 )
-
-# Pass on the env context to the function
-env = {
-    "PROJECT_NAME": os.getenv("PROJECT_NAME"),
-    "DATASET_URI": os.getenv("DATASET_URI"),
-    "HANDLER": os.getenv("HANDLER"),
-    "MODEL_TAG": os.getenv("MODEL_TAG"),
-    "MODEL_NAME": os.getenv("MODEL_NAME"),
-}
 
 # Timestamped versioning
 version = datetime.now().strftime('%d%m%Y_%H%M%S')
 
-
-# # Run the function
-# function.run(handler=os.getenv('HANDLER'), params=env)  # Specify the function to run
-
-
+# Run functions
 ingest.run(
     name='ingest',
     handler=os.getenv('HANDLER'),
     inputs={
-        'dataset_uri': os.getenv("DATASET_URI"),
+        'dataset_uri': os.getenv("RAW_DATA_URI"),
     },
     params={
         'VERSION': version
     }
-    )
+)
+
+train.run(
+    name='train',
+    handler=os.getenv('HANDLER'),
+    inputs={
+        'processed_dataset_uri': os.getenv("PROCESSED_DATA_URI"),
+        'version': version # If omitted, will look for latest version of dataset
+    },
+    params={
+        'ALGORITHM': os.getenv("ALGORITHM")
+    },
+    auto_build=True
+)
