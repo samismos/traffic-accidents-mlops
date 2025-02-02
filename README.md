@@ -15,8 +15,20 @@ The dev environment can be built with the command below:
 
 Note: $PWD is a Windows shorthand for current directory, modify accordingly
 
-Inside the dev environment, you can run the python files which use the MLRun SDK.
+Inside the dev environment, you can run the main.py file which uses the MLRun SDK.
 
+To select an algorithm, modify the ```ALGORITHM``` variable in the ```main_config.env``` file.
+
+## Available Algorithm Options:
+
+| Algorithm Name | Description                             |
+|----------------|-----------------------------------------|
+| `decision_tree_classifier`           | Decision Tree - A simple, interpretable classifier based on a tree-like model. |
+| `random_forest_classifier`           | Random Forest - An ensemble method using multiple decision trees to improve accuracy and control overfitting. |
+| `xg_boost`          | XGBoost - A highly efficient and scalable gradient boosting framework. |
+| `light_gbm`          | LightGBM - A fast, distributed, high-performance gradient boosting framework optimized for large datasets. |
+
+Make sure the variable matches exactly the names in this table, as it is directly mapped to a file in the ```models``` folder.
 # Build trainer image
 
 The train environment can be built with the command below:

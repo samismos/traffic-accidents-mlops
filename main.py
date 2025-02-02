@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 
 ### Select project configuration
-load_dotenv("traffic_accidents.env")
+load_dotenv("main_config.env")
 
 ### Network configuration
 load_dotenv("network_config.env")
@@ -25,8 +25,9 @@ ingest = mlrun.code_to_function(
 train = mlrun.code_to_function(
     name="train", 
     kind="job",
-    filename="train.py",
+    filename=f"models/{os.getenv('ALGORITHM')}.py",
     image=os.getenv('TRAIN_IMAGE'),
+    tag=os.getenv('ALGORITHM')
 )
 
 # Timestamped versioning
@@ -48,7 +49,7 @@ train.run(
     name='train',
     handler=os.getenv('HANDLER'),
     inputs={
-        'processed_dataset_uri': os.getenv("PROCESSED_DATA_URI"),
+        'train_val_data_uri': os.getenv("TRAIN_VAL_DATA_URI"),
         'version': version
     },
     params={

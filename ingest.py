@@ -1,6 +1,7 @@
 import pandas as pd
 import mlrun
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
 
 def date_parser(df, date_col, parsed_col, output_format):
     """
@@ -93,19 +94,30 @@ def entrypoint(context: mlrun.MLClientCtx, dataset_uri, **args):
     df['District_Area_encoded'] = mean_severity
     df = df.drop(['District Area'], axis=1)
 
+    # Split: Train & Validation - Test
+    train_val_data, test_data = train_test_split(df, test_size=0.15, random_state=42)
 
     # Save and log the processed DataFrame
-    output_path = '/tmp/df.csv'
-    df.to_csv(output_path, index=False)
+    output_path = '/tmp/'
+    train_val_file = output_path + 'train_val_data.csv'
+    test_file = output_path + 'test_data.csv'
+    
+    train_val_data.to_csv(train_val_file, index=False)
+    test_data.to_csv(test_file, index=False)
     
     # Timestamp-based versioning
     version = args.get('VERSION')
 
     context.log_artifact(
-        'processed_data',
-        local_path=output_path,
+        'train_val_data',
+        local_path=train_val_file,
         tag=version,
-        labels={
-            'rows': len(df)
-        }
+        labels={'rows': len(train_val_data)}
+    )
+
+    context.log_artifact(
+        'test_data',
+        local_path=test_file,
+        tag=version,
+        labels={'rows': len(test_data)}
     )
