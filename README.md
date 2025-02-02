@@ -13,7 +13,7 @@ The dev environment can be built with the command below:
 
 ```docker run -it --rm --network host -v "$PWD":/project --name mlrun-dev mlrun-dev```
 
-Note: $PWD is a Windows shorthand for current directory, modify accordingly
+_Note: $PWD is a Windows shorthand for current directory, modify accordingly_
 
 Inside the dev environment, you can run the main.py file which uses the MLRun SDK.
 
