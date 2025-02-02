@@ -36,15 +36,20 @@ To select an algorithm, modify the ```ALGORITHM``` variable in the ```main_confi
 | `light_gbm`    | LightGBM - A fast, distributed, high-performance gradient boosting framework optimized for large datasets.       |
 
 Make sure the variable matches exactly the names in this table, as it is directly mapped to a file in the ```models``` folder.
+
 # Build trainer image
 
-The train environment can be built with the command below:
+MLRun provides its official ```mlrun/mlrun``` image with built-in support for popular frameworks. However, if you have different requirements, e.g. ```XGBoost```, you need to build a custom image and push it to your Docker Hub repository.
 
-```docker build -f Dockerfile.train -t samismos/mlrun-dev:1.7.2 .```
+I have created a sample Dockerfile.train with included support for XGBoost and LightGBM. You may modify it and add any other dependencies. The image can be built with the command below:
+
+```docker build -f Dockerfile.train -t <DOCKER_HUB_ID>/<IMAGE_NAME>:<TAG> .```
+
+_Note: the <DOCKER_HUB_ID>/<IMAGE_NAME> must exactly match the name of your Docker Hub repository._
 
 Push image to Docker Hub repository:
 
-```docker push samismos/mlrun-dev:1.7.2```
+```docker push <YOUR_DOCKER_HUB_ID>/<IMAGE_NAME>:<TAG>```
 
 ###  IMPORTANT 
 Create/update the ```network_config.env``` file, and make sure it includes:

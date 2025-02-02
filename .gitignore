@@ -2,3 +2,4 @@
 __pycache__/
 network_config.env
 .vscode
+MY_README.md
