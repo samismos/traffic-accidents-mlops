@@ -1,65 +1,76 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, recall_score, f1_score, confusion_matrix
-import xgboost as xgb
+import cloudpickle
+from pickle import load
+import mlrun
+from mlrun.artifacts import get_model, update_model
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix
 
-def entrypoint(context: mlrun.MLClientCtx, model, test_set, version='latest', **args):
+def entrypoint(context: mlrun.MLClientCtx, model_uri, test_data_uri, version='latest', **args):
+    """Evaluate a trained model on a test dataset and log results in MLRun."""
+    test_df = test_data_uri.as_df()
 
-    # Evaluate model
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred, average='weighted')
-    f1 = f1_score(y_test, y_pred, average='weighted')
-
-    # Accuracy for serious and fatal accidents
-    serious_fatal_classes = [0, 1]
-
-    # Filter out predictions and ground truth for serious and fatal accidents
-    y_test_filtered = [y for y, label in zip(y_test, y_pred) if label in serious_fatal_classes]
-    y_pred_filtered = [y for y in y_pred if y in serious_fatal_classes]
-
-    # Calculate accuracy, recall, and F1 for serious and fatal accidents
-    accuracy_serious_fatal = accuracy_score(y_test_filtered, y_pred_filtered)
-    recall_serious_fatal = recall_score(y_test_filtered, y_pred_filtered, average='weighted')
-    f1_serious_fatal = f1_score(y_test_filtered, y_pred_filtered, average='weighted')
-
-    # Log results manually
-    context.log_results({
-        "accuracy_serious_fatal": accuracy_serious_fatal,
-        "recall_serious_fatal": recall_serious_fatal,
-        "f1_score_serious_fatal": f1_serious_fatal
-    })
-
-    # Confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
-    all_classes = np.unique(y)
-    cm = confusion_matrix(y_test, y_pred, labels=all_classes)
+    test_df = test_df.dropna()
     
-    # Convert confusion matrix to DataFrame for better readability
-    cm_df = pd.DataFrame(cm, index=all_classes, columns=all_classes)
+    model_file, model_obj, _ = get_model(model_uri)
+    model = load(open(model_file, "rb"))
 
-    # Log confusion matrix as a CSV artifact
-    cm_df.to_csv('/tmp/confusion_matrix.csv')
-    context.log_artifact(
-        'confusion_matrix',
-        local_path='/tmp/confusion_matrix.csv',
-        labels={'algorithm':algorithm}
-    )
-
-    fig, ax = plt.subplots(figsize=(10, 8))  # You can adjust the size as needed
-    xgb.plot_importance(model, importance_type='weight', ax=ax)
-    plt.title('Feature Importance')
-    plt.xlabel('Importance (weight)')
+    # Separate features and target
+    X_test = test_df.drop(columns=['Accident_Severity'])
+    y_test = test_df['Accident_Severity']
     
-    # Save the plot to a file
-    plot_filename = '/tmp/feature_importance.png'
-    plt.savefig(plot_filename)  # Saves the plot as an image file
+    # Ensure test data is not empty
+    if X_test is None or y_test is None:
+        raise ValueError("Test data (X_test, y_test) is required but missing.")
 
-    # Log the plot as an artifact in MLRun
-    context.log_artifact(
-        "feature_importance",  # Artifact name
-        local_path=plot_filename,  # Path to the saved plot
-        labels={"framework": algorithm}
+    # Predict on test data
+    test_predictions = model.predict(X_test)
+
+    # Compute classification metrics
+    test_accuracy = accuracy_score(y_test, test_predictions)
+    test_precision = precision_score(y_test, test_predictions, average='weighted')
+    test_recall = recall_score(y_test, test_predictions, average='weighted')
+    test_f1 = f1_score(y_test, test_predictions, average='weighted')
+
+    # Compute confusion matrix
+    all_classes = np.unique(y_test)
+    conf_matrix = confusion_matrix(y_test, test_predictions, labels=all_classes)
+
+    # Define class labels
+    class_mapping = {0: "Fatal", 1: "Serious", 2: "Slight"}
+    
+    # Compute per-class F1 scores
+    f1_scores_per_class = f1_score(y_test, test_predictions, average=None)
+    
+    # Log results in MLRun
+    metrics = {
+        "Test Accuracy": test_accuracy,
+        "Test Precision": test_precision,
+        "Test Recall": test_recall,
+        "Test F1 Score": test_f1
+    }
+
+    # Add per-class F1 scores to logs
+    for i, class_label in enumerate(all_classes):
+        metrics[f"{class_mapping[class_label]} - F1 Score"] = f1_scores_per_class[i]
+
+    context.log_results(metrics)
+
+    # Save confusion matrix as CSV
+    cm_df = pd.DataFrame(conf_matrix, index=all_classes, columns=all_classes)
+    cm_path = "/tmp/confusion_matrix.csv"
+    cm_df.to_csv(cm_path)
+    
+    # Log confusion matrix as artifact
+    context.log_artifact("confusion_matrix", local_path=cm_path)
+
+    # Log the trained model
+    algorithm = args.get("algorithm", "model")
+    context.log_model(
+        key=algorithm,
+        body=cloudpickle.dumps(model),
+        model_file="model.pkl",
+        tag=version,
+        algorithm=algorithm,
+        metrics=metrics
     )
-    plt.close()  # Close the plot to free memory

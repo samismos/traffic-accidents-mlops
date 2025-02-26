@@ -1,7 +1,34 @@
 import pandas as pd
 import mlrun
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
+
+
+def one_hot_encode(df, categorical_cols):
+    """
+    Performs one-hot encoding on categorical columns while ensuring feature consistency.
+
+    Parameters:
+        df (pd.DataFrame): The input DataFrame.
+        categorical_cols (list): List of categorical columns to encode.
+
+    Returns:
+        pd.DataFrame: The transformed DataFrame with one-hot encoding applied.
+        OneHotEncoder: The fitted OneHotEncoder for future transformations.
+    """
+    encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+    encoded_array = encoder.fit_transform(df[categorical_cols])
+
+    # Convert the array back to a DataFrame
+    encoded_df = pd.DataFrame(encoded_array, columns=encoder.get_feature_names_out(categorical_cols))
+
+    # Drop the original categorical columns and merge the encoded ones
+    df = df.drop(columns=categorical_cols).reset_index(drop=True)
+    encoded_df = encoded_df.reset_index(drop=True)
+    
+    return pd.concat([df, encoded_df], axis=1), encoder
+
+
 
 def date_parser(df, date_col, parsed_col, output_format):
     """
@@ -87,7 +114,8 @@ def entrypoint(context: mlrun.MLClientCtx, dataset_uri, **args):
     # One-hot encoding
     categorical_cols = ['Light_Conditions', 'Road_Surface_Conditions', 'Road_Type', 
                          'Weather_Conditions', 'Vehicle_Type']
-    df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
+    # df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
+    df, one_hot_encoder = one_hot_encode(df, categorical_cols)
 
     # Target encoding (if needed)
     mean_severity = df.groupby('District Area')['Accident_Severity'].transform('mean')
@@ -95,29 +123,25 @@ def entrypoint(context: mlrun.MLClientCtx, dataset_uri, **args):
     df = df.drop(['District Area'], axis=1)
 
     # Split: Train & Validation - Test
-    train_val_data, test_data = train_test_split(df, test_size=0.15, random_state=42)
-
-    # Save and log the processed DataFrame
-    output_path = '/tmp/'
-    train_val_file = output_path + 'train_val_data.csv'
-    test_file = output_path + 'test_data.csv'
-    
-    train_val_data.to_csv(train_val_file, index=False)
-    test_data.to_csv(test_file, index=False)
+    train_data, batch_data = train_test_split(df, test_size=0.2, random_state=42, shuffle=False)
+    train_file = '/tmp/train_data.csv'
+    batch_file = '/tmp/batch_data.csv'
+    train_data.to_csv(train_file, index=False)
+    batch_data.to_csv(batch_file, index=False)
     
     # Timestamp-based versioning
     version = args.get('VERSION')
 
     context.log_artifact(
-        'train_val_data',
-        local_path=train_val_file,
+        'train_data',
+        local_path=train_file,
         tag=version,
-        labels={'rows': len(train_val_data)}
+        labels={'rows': len(train_data),'columns': len(train_data.columns)}
     )
 
     context.log_artifact(
-        'test_data',
-        local_path=test_file,
+        'batch_data',
+        local_path=batch_file,
         tag=version,
-        labels={'rows': len(test_data)}
+        labels={'rows': len(batch_data),'columns': len(batch_data.columns)}
     )
