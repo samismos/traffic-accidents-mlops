@@ -1,7 +1,7 @@
 FROM python:3.9
 
 # Installing project requirements
-RUN pip install python-dotenv mlrun
+RUN pip install python-dotenv imblearn mlrun 
 
 # Creating the non-root user
 RUN useradd -ms /bin/bash mlrun-dev

@@ -1,5 +1,5 @@
 FROM mlrun/mlrun:1.7.2
 
-RUN pip install lightgbm xgboost
+RUN pip install lightgbm xgboost imblearn
 
 ENTRYPOINT [ "bash" ]

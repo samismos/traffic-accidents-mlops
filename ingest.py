@@ -1,147 +1,184 @@
+# Import libraries
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 import mlrun
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-from sklearn.model_selection import train_test_split
+# import seaborn as sns
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from imblearn.over_sampling import SMOTE
+# Classification models
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+
+def entrypoint(context: mlrun.MLClientCtx, DATASET_URI, **args):
+    # For reproducibility
+    np.random.seed(42)
+
+    # =====================
+    # 1. Data Loading
+    # =====================
+    # Replace 'uk_traffic_accidents.csv' with your dataset file path.
+    # data = pd.read_csv('LONDON.csv')
+    data = DATASET_URI.as_df()
+
+    # =====================
+    # 2. Initial Data Exploration
+    # =====================
+    print("Dataset shape:", data.shape)
+    print("\nDataset Info:")
+    print(data.info())
+    print("\nMissing values:")
+    print(data.isnull().sum())
+    print("\nDescriptive statistics:")
+    print(data.describe())
+
+    # =====================
+    # 3. Exploratory Data Analysis (EDA)
+    # =====================
+
+    # Plotting distribution of target variable: Accident Severity
+    # plt.figure(figsize=(8, 5))
+    # sns.countplot(x='Accident_Severity', data=data, palette='viridis')
+    # plt.title("Distribution of Accident Severity")
+    # plt.xlabel("Accident Severity")
+    # plt.ylabel("Count")
+    # plt.show()
+
+    # If there are categorical variables other than the target, explore them too
+    categorical_cols = data.select_dtypes(include=['object']).columns
+    print("\nCategorical Columns:", categorical_cols)
+
+    # Plot counts for each categorical feature (limit to a few for clarity)
+    # for col in categorical_cols:
+    #     plt.figure(figsize=(8, 4))
+    #     sns.countplot(y=col, data=data, order=data[col].value_counts().index, palette='magma')
+    #     plt.title(f"Distribution of {col}")
+    #     plt.xlabel("Count")
+    #     plt.ylabel(col)
+    #     plt.show()
+
+    # Correlation heatmap for numerical features
+    numerical_cols = data.select_dtypes(include=['int64', 'float64']).columns
+    # plt.figure(figsize=(10, 8))
+    # sns.heatmap(data[numerical_cols].corr(), annot=True, cmap='coolwarm', fmt=".2f")
+    # plt.title("Correlation Heatmap of Numerical Features")
+    # plt.show()
+
+    # =====================
+    # 4. Data Preprocessing
+    # =====================
+
+    # Handling missing values:
+    # Fill missing numerical values with the median and categorical ones with the mode.
+    for col in data.columns:
+        if data[col].dtype in ['int64', 'float64']:
+            data[col].fillna(data[col].median(), inplace=True)
+        else:
+            data[col].fillna(data[col].mode()[0], inplace=True)
+
+    # Converting categorical variables to numeric using Label Encoding
+    label_encoders = {}
+    for col in categorical_cols:
+        le = LabelEncoder()
+        data[col] = le.fit_transform(data[col])
+        label_encoders[col] = le
+
+    # Optional: Scale numerical features if needed (excluding the target variable)
+    scaler = StandardScaler()
+    features_to_scale = [col for col in numerical_cols if col != 'Accident Severity']
+    data[features_to_scale] = scaler.fit_transform(data[features_to_scale])
+
+    # =====================
+    # 5. Prepare Data for Modeling
+    # =====================
+
+    print(data.columns)
+
+    # Define features (X) and target (y)
+    X = data.drop('Accident_Severity', axis=1)
+    y = data['Accident_Severity']
+
+    # Drop Index column
+    # X = X.drop(columns=['Index'])
 
 
-def one_hot_encode(df, categorical_cols):
-    """
-    Performs one-hot encoding on categorical columns while ensuring feature consistency.
+    # Split data into training and testing sets using stratification to maintain class proportions
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, stratify=y, random_state=42
+    )
+    print("\nTraining set shape:", X_train.shape)
+    print("Testing set shape:", X_test.shape)
 
-    Parameters:
-        df (pd.DataFrame): The input DataFrame.
-        categorical_cols (list): List of categorical columns to encode.
+    # =====================
+    # 6. Handle Class Imbalance with SMOTE
+    # =====================
 
-    Returns:
-        pd.DataFrame: The transformed DataFrame with one-hot encoding applied.
-        OneHotEncoder: The fitted OneHotEncoder for future transformations.
-    """
-    encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
-    encoded_array = encoder.fit_transform(df[categorical_cols])
+    # Print original class distribution in training set
+    print("\nOriginal training set class distribution:")
+    print(y_train.value_counts())
 
-    # Convert the array back to a DataFrame
-    encoded_df = pd.DataFrame(encoded_array, columns=encoder.get_feature_names_out(categorical_cols))
+    # Define a sampling strategy for the minority classes (adjust the labels and target counts as needed)
+    # sampling_strategy = {1: 2000, 2: 2000}  # Replace 1 and 2 with the actual minority class labels
 
-    # Drop the original categorical columns and merge the encoded ones
-    df = df.drop(columns=categorical_cols).reset_index(drop=True)
-    encoded_df = encoded_df.reset_index(drop=True)
-    
-    return pd.concat([df, encoded_df], axis=1), encoder
+    # Create the SMOTE object with the desired sampling strategy
+    smote = SMOTE(sampling_strategy='auto', random_state=42)
 
+    # Apply SMOTE to the training data
+    X_train_over, y_train_over = smote.fit_resample(X_train, y_train)
 
+    print("Shapes before saving:")
+    print(f"X_train_over: {X_train_over.shape}, y_train_over: {y_train_over.shape}")
+    print(f"X_test: {X_test.shape}, y_test: {y_test.shape}")
 
-def date_parser(df, date_col, parsed_col, output_format):
-    """
-    Parses mixed-format date strings in a DataFrame column.
+    print("\nAfter SMOTE, training set class distribution:")
+    print(y_train_over.value_counts())
 
-    Parameters:
-        df (pd.DataFrame): The input DataFrame.
-        date_col (str): The name of the column containing the original date strings.
-        parsed_col (str): The name for the new column with parsed dates.
-        output_format (str): The desired string format for the parsed dates (e.g., "%d-%m-%Y").
+    X_train_over_file = '/tmp/X_train_over.csv'
+    y_train_over_file = '/tmp/y_train_over.csv'
+    X_test_file = '/tmp/X_test.csv'
+    y_test_file = '/tmp/y_test.csv'
+    X_train_over.to_csv(X_train_over_file, index=False)
+    y_train_over.to_csv(y_train_over_file, index=False)
+    X_test.to_csv(X_test_file, index=False)
+    y_test.to_csv(y_test_file, index=False)
 
-    Returns:
-        pd.DataFrame: The DataFrame with an added column for parsed dates.
-    """
-    # Preserve the original date strings in a temporary column
-    df['_original_' + date_col] = df[date_col]
+    print("Shapes after loading:")
+    print(f"X_train_over: {X_train_over.shape}, y_train_over: {y_train_over.shape}")
+    print(f"X_test: {X_test.shape}, y_test: {y_test.shape}")
 
-    # List of expected date formats (order matters: try the most common first)
-    formats = ["%d/%m/%Y", "%d-%m-%Y"]
-
-    # First attempt: try the first format
-    df[parsed_col] = pd.to_datetime(df['_original_' + date_col], format=formats[0], errors='coerce')
-    
-    # Identify rows where conversion failed
-    mask = df[parsed_col].isna()
-    
-    # For the rows that failed, try the next formats
-    for fmt in formats[1:]:
-        if mask.sum() == 0:
-            break  # All dates parsed; no need for further attempts
-        df.loc[mask, parsed_col] = pd.to_datetime(
-            df.loc[mask, '_original_' + date_col], format=fmt, errors='coerce'
-        )
-        # Update the mask for any remaining unparsed dates
-        mask = df[parsed_col].isna()
-    
-    # Convert the parsed dates to a consistent string format
-    df[parsed_col] = df[parsed_col].dt.strftime(output_format)
-    
-    # Replace the original date column with the parsed dates
-    df[date_col] = df[parsed_col]
-
-    # Drop the temporary columns
-    df.drop(columns=['_original_' + date_col, parsed_col], inplace=True)
-
-    # Extract useful features from the dates
-    df['date'] = pd.to_datetime(df[date_col], dayfirst=True)
-    df['day'] = df['date'].dt.day
-    df['month'] = df['date'].dt.month
-    df['year'] = df['date'].dt.year
-    df['day_of_week'] = df['date'].dt.dayofweek  # 0 = Monday, 6 = Sunday
-    df['is_weekend'] = df['day_of_week'].apply(lambda x: 1 if x >= 5 else 0)
-
-    df = df.drop(columns=['date', date_col])
-
-    return df
-
-
-def entrypoint(context: mlrun.MLClientCtx, dataset_uri, **args):
-    # Ingest the dataset as dataframe
-    df = dataset_uri.as_df()
-
-    # Remove rows with empty values
-    df = df.dropna()
-    
-    # Make all dates adhere to output_format
-    df = date_parser(df, 'Accident Date', 'Parsed Date', "%d-%m-%Y")
-
-    # Drop index
-    df = df.drop(columns=['Index'])
-
-    # Encode columns
-    label_encoder = LabelEncoder()
-    df['Accident_Severity'] = label_encoder.fit_transform(df['Accident_Severity'])
-
-     # Print label encoding mapping
-    for index, label in enumerate(label_encoder.classes_):
-        print(f"Encoded label {index} corresponds to actual label: {label}")
-
-    # Binary encoding
-    df['Urban_or_Rural_Area'] = df['Urban_or_Rural_Area'].map({'Urban': 1, 'Rural': 0})
-
-    # One-hot encoding
-    categorical_cols = ['Light_Conditions', 'Road_Surface_Conditions', 'Road_Type', 
-                         'Weather_Conditions', 'Vehicle_Type']
-    # df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
-    df, one_hot_encoder = one_hot_encode(df, categorical_cols)
-
-    # Target encoding (if needed)
-    mean_severity = df.groupby('District Area')['Accident_Severity'].transform('mean')
-    df['District_Area_encoded'] = mean_severity
-    df = df.drop(['District Area'], axis=1)
-
-    # Split: Train & Validation - Test
-    train_data, batch_data = train_test_split(df, test_size=0.2, random_state=42, shuffle=False)
-    train_file = '/tmp/train_data.csv'
-    batch_file = '/tmp/batch_data.csv'
-    train_data.to_csv(train_file, index=False)
-    batch_data.to_csv(batch_file, index=False)
-    
     # Timestamp-based versioning
     version = args.get('VERSION')
-
+    
+    artifact_prefix = "B_" if args.get("IS_BATCH") else ""
+    
     context.log_artifact(
-        'train_data',
-        local_path=train_file,
+        f'{artifact_prefix}X_train',
+        local_path=X_train_over_file,
         tag=version,
-        labels={'rows': len(train_data),'columns': len(train_data.columns)}
+        # labels={'rows': len(X_train_over),'columns': len(X_train_over.columns)}
     )
 
     context.log_artifact(
-        'batch_data',
-        local_path=batch_file,
+        f'{artifact_prefix}y_train',
+        local_path=y_train_over_file,
         tag=version,
-        labels={'rows': len(batch_data),'columns': len(batch_data.columns)}
+        # labels={'rows': len(y_train_over),'columns': len(y_train_over.columns)}
+    )
+
+    context.log_artifact(
+        f'{artifact_prefix}X_test',
+        local_path=X_test_file,
+        tag=version,
+        # labels={'rows': len(X_test),'columns': len(X_test.columns)}
+    )
+
+    context.log_artifact(
+        f'{artifact_prefix}y_test',
+        local_path=y_test_file,
+        tag=version,
+        # labels={'rows': len(y_test),'columns': len(y_test.columns)}
     )

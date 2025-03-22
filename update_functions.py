@@ -22,27 +22,19 @@ ingest = mlrun.code_to_function(
     name="ingest", 
     kind="job",
     filename="ingest.py",
-    project=os.getenv('PROJECT_NAME')
-)
-
-# Convert the Python script to a function
-train = mlrun.code_to_function(
-    name="train", 
-    kind="job",
-    filename=f"models/{os.getenv('ALGORITHM')}.py",
-    project=os.getenv('PROJECT_NAME'),
-    image=os.getenv('TRAIN_IMAGE'),
-    tag=os.getenv('ALGORITHM')
-)
-
-# Convert the Python script to a function
-evaluate = mlrun.code_to_function(
-    name="evaluate", 
-    kind="job",
-    filename="evaluate.py",
     project=os.getenv('PROJECT_NAME'),
     image=os.getenv('TRAIN_IMAGE'),
 )
+
+# Convert the Python script to a function
+train_then_evaluate = mlrun.code_to_function(
+    name="train_then_evaluate", 
+    kind="job",
+    filename="train_then_evaluate.py",
+    project=os.getenv('PROJECT_NAME'),
+    image=os.getenv('TRAIN_IMAGE'),
+)
+
 
 # Timestamped versioning
 version = datetime.now().strftime('%d%m%Y_%H%M%S')
@@ -52,36 +44,26 @@ ingest.run(
     name='ingest',
     handler=os.getenv('HANDLER'),
     inputs={
-        'dataset_uri': os.getenv("RAW_DATA_URI"),
+        'DATASET_URI': os.getenv("RAW_DATA_URI"),
     },
     params={
         'VERSION': version
     }
 )
 
-train.run(
-    name='train',
+train_then_evaluate.run(
+    name='train_then_evaluate',
     handler=os.getenv('HANDLER'),
     inputs={
-        'train_data_uri': os.getenv("TRAIN_DATA_URI"),
-        'version': version
+      'X_TRAIN_URI': os.getenv("X_TRAIN"),
+      'X_TEST_URI': os.getenv("X_TEST"),
+      'Y_TRAIN_URI': os.getenv("Y_TRAIN"),
+      'Y_TEST_URI': os.getenv("Y_TEST"),
     },
     params={
-        'algorithm': os.getenv("ALGORITHM")
-    },
-    auto_build=True
-)
-
-evaluate.run(
-    name='evaluate',
-    handler=os.getenv('HANDLER'),
-    inputs={
-        'model_uri': f'{os.getenv("MODEL_STORE")}/{os.getenv("PROJECT_NAME")}/train_{os.getenv("ALGORITHM")}#0:latest',
-        'test_data_uri': os.getenv("TEST_DATA_URI"),
-        'version': version
-    },
-    params={
-        'algorithm': os.getenv("ALGORITHM")
+        'ALGORITHM': os.getenv("ALGORITHM"),
+        'SHOULD_TRAIN': True,
+        'VERSION': version
     },
     auto_build=True
 )

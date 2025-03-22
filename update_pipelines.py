@@ -31,7 +31,15 @@ env = {
     'DATA_STORE': os.getenv("DATA_STORE"),
     'ARTIFACT_STORE': os.getenv("ARTIFACT_STORE"),
     'MLRUN_DBPATH':  os.getenv('MLRUN_DBPATH'),
-    'ARTIFACT_BASE_PATH': os.getenv('ARTIFACT_BASE_PATH')
+    'ARTIFACT_BASE_PATH': os.getenv('ARTIFACT_BASE_PATH'),
+    'X_TRAIN': os.getenv('X_TRAIN'),
+    'X_TEST': os.getenv('X_TEST'),
+    'Y_TRAIN': os.getenv('Y_TRAIN'),
+    'Y_TEST': os.getenv('Y_TEST'),    
+    'B_X_TRAIN': os.getenv('B_X_TRAIN'),
+    'B_X_TEST': os.getenv('B_X_TEST'),
+    'B_Y_TRAIN': os.getenv('B_Y_TRAIN'),
+    'B_Y_TEST': os.getenv('B_Y_TEST'),    
 }
 
 # Now you can access values like env['PROJECT_NAME'], env['ALGORITHM'], etc.
@@ -53,11 +61,11 @@ batch_pipeline = mlrun.code_to_function(
 # Timestamped versioning
 version = datetime.now().strftime('%d%m%Y_%H%M%S')
 
-# pipeline.run(
-#     name='main_pipeline',
-#     handler=os.getenv('HANDLER'),
-#     params={**env, 'VERSION': version}
-# )
+pipeline.run(
+    name='main_pipeline',
+    handler=os.getenv('HANDLER'),
+    params={**env, 'VERSION': version}
+)
 
 batch_pipeline.run(
     name='batch_pipeline',
