@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
     inputs:
       Algorithm:
-        description: "Select the ML algorithm"
         required: false
         type: choice
         options:
@@ -37,6 +36,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Echo inputs
+        run: |
+          echo ${{ inputs.update-pipelines }}
+          echo ${{ inputs.update-functions }}
+          echo ${{ github.event.inputs.update-pipelines }}
       # Run tests
       - name: Lists content directories
         run: ls -la
