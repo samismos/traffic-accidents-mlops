@@ -3,16 +3,16 @@ name: Update Functions
 on:
   workflow_dispatch:
     inputs:
-      Algorithm:
+      algorithm:
         required: false
         type: choice
+        default: xg_boost
         options:
           - decision_tree_classifier
           - random_forest_classifier
           - xg_boost
           - light_gbm
           - mlp
-        default: xg_boost
       update-functions:
         type: bool
         required: false
@@ -21,10 +21,6 @@ on:
         type: bool
         required: false
         default: true
-        
-  push:
-    branch: 
-      - ci-test
 
 jobs:
   update-functions:
@@ -40,11 +36,12 @@ jobs:
         run: |
           echo ${{ inputs.update-pipelines }}
           echo ${{ inputs.update-functions }}
-          echo ${{ github.event.inputs.update-pipelines }}
+          echo ${{ inputs.algorithm }}
       # Run tests
       - name: Lists content directories
         run: ls -la
 
-      # Install dependencies
-      - name: Install dependencies
+      
+      - name: Update Functions
+        if: {{ inputs.update-functions == true }}
         run: python update_functions.py 
