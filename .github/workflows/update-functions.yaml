@@ -1,13 +1,34 @@
-name: CI Pipeline
+name: Update Functions
 
 on:
   workflow_dispatch:
+    inputs:
+      Algorithm:
+        description: "Select the ML algorithm"
+        required: false
+        type: choice
+        options:
+          - decision_tree_classifier
+          - random_forest_classifier
+          - xg_boost
+          - light_gbm
+          - mlp
+        default: xg_boost
+      update-functions:
+        type: bool
+        required: false
+        default: true
+      update-pipelines:
+        type: bool
+        required: false
+        default: true
+        
   push:
     branch: 
       - ci-test
 
 jobs:
-  build:
+  update-functions:
     # Use self-hosted runner
     runs-on: self-hosted
     
