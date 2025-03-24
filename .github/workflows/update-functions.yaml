@@ -2,6 +2,9 @@ name: CI Pipeline
 
 on:
   workflow_dispatch:
+  push:
+    branch: 
+      - ci-test
 
 jobs:
   build:
@@ -13,13 +16,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Install dependencies
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
       # Run tests
       - name: Hello world
-        run: echo "Hello World! I'm a self hosted runner"
+        run: |
+          echo "Hello World! I'm a self hosted runner"
+          ip a
+          cd
+          pwd
+
+      # Install dependencies
+      - name: Install dependencies
+        run: docker run --rm --network host -v "$PWD":/project --name mlrun-dev mlrun-dev python update_functions.py
+
+    
 
       # Build the project
       - name: Run function
