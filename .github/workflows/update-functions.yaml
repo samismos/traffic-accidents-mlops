@@ -32,6 +32,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: "Replace ALGORITHM in .env file"
+        run: |
+          echo "Replacing ALGORITHM in .env/main_config.env"
+          sed -i "s/^ALGORITHM=.*/ALGORITHM=${{ inputs.algorithm }}/" .env/main_config.env
+
+      - name: "Show updated .env file"
+        run: cat .env/main_config.env
       # Update functions
       - name: Update Functions
         if: ${{ inputs.update-functions == true }}
