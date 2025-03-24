@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       algorithm:
-        required: false
+        required: true
         type: choice
-        default: xg_boost
         options:
           - decision_tree_classifier
           - random_forest_classifier
@@ -14,11 +13,11 @@ on:
           - light_gbm
           - mlp
       update-functions:
-        type: bool
+        type: boolean
         required: false
         default: true
       update-pipelines:
-        type: bool
+        type: boolean
         required: false
         default: true
 
@@ -32,16 +31,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: "Replace ALGORITHM in .env file"
+      - name: "Show main_config.env"
         run: |
-          echo "Replacing ALGORITHM in .env/main_config.env"
           sed -i "s/^ALGORITHM=.*/ALGORITHM=${{ inputs.algorithm }}/" .env/main_config.env
+          cat .env/main_config.env
 
-      - name: "Show updated .env file"
-        run: cat .env/main_config.env
       # Update functions
       - name: Update Functions
-        if: ${{ inputs.update-functions == true }}
+        if: ${{ inputs.update-functions == 'true' }}
         run: python update_functions.py 
 
       # Update Pipelines
