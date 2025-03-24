@@ -33,7 +33,7 @@ Push image to Docker Hub repository:
 
 ```docker push <YOUR_DOCKER_HUB_ID>/<IMAGE_NAME>:<TAG>```
 
-## 1.4) Build and run self-hosted runner for Github Actions integration
+## 1.4) Build and run self-hosted runner for GitHub Actions integration
 
 If you want to use GitHub Actions for CI, but have a locally hosted cluster, you need to schedule jobs on a self-hosted runner inside your cluster. The image is ```images/Dockerfile.runner```.
 Follow the instructions at https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/adding-self-hosted-runners.
@@ -44,7 +44,7 @@ Build the image with (replace <your_github_token> with either your PAT or the to
 Start the runner with:
 ```docker run --rm --network host --name github-runner github-runner```
 
-If your runner connects to Github and is listening for jobs, you are good to go!
+If your runner connects to GitHub and is listening for jobs, you are good to go!
 
 # 2) How to use
 
