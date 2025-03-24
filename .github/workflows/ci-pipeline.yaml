@@ -1,0 +1,46 @@
+name: CI Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      Algorithm:
+        required: true
+        type: choice
+        options:
+          - decision_tree_classifier
+          - random_forest_classifier
+          - xg_boost
+          - mlp
+      update-functions:
+        type: boolean
+        required: false
+        default: false
+      update-pipelines:
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  CI Pipeline:
+    # Use self-hosted runner
+    runs-on: self-hosted
+    
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Show main_config.env
+        run: |
+          sed -i "s/^ALGORITHM=.*/ALGORITHM=${{ inputs.algorithm }}/" .env/main_config.env
+          cat .env/main_config.env
+
+      # Update functions
+      - name: Update Functions
+        if: ${{ inputs.update-functions == true }}
+        run: python update_functions.py 
+
+      # Update Pipelines
+      - name: Update Pipelines
+        if: ${{ inputs.update-pipelines == true }}
+        run: python update_pipelines.py 
