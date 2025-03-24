@@ -43,5 +43,5 @@ jobs:
 
       
       - name: Update Functions
-        if: {{ inputs.update-functions == true }}
+        if: ${{ inputs.update-functions == true }}
         run: python update_functions.py 
