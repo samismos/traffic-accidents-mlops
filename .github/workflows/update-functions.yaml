@@ -39,5 +39,5 @@ jobs:
 
       # Update Pipelines
       - name: Update Pipelines
-        if: ${{ inputs.update-pipelines == true }}
+        if: ${{ inputs.update-pipelines == 'true' }}
         run: python update_pipelines.py 
