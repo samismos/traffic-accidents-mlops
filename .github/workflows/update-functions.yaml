@@ -32,16 +32,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Echo inputs
-        run: |
-          echo ${{ inputs.update-pipelines }}
-          echo ${{ inputs.update-functions }}
-          echo ${{ inputs.algorithm }}
-      # Run tests
-      - name: Lists content directories
-        run: ls -la
-
-      
+      # Update functions
       - name: Update Functions
         if: ${{ inputs.update-functions == true }}
         run: python update_functions.py 
+
+      # Update Pipelines
+      - name: Update Pipelines
+        if: ${{ inputs.update-pipelines == true }}
+        run: python update_pipelines.py 
