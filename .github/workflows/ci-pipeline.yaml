@@ -3,7 +3,7 @@ name: CI Pipeline
 on:
   workflow_dispatch:
     inputs:
-      Algorithm:
+      algorithm:
         required: true
         type: choice
         options:
@@ -30,7 +30,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Show main_config.env
+      - name: Apply inputs.algorithm in main_config.env
         run: |
           sed -i "s/^ALGORITHM=.*/ALGORITHM=${{ inputs.algorithm }}/" .env/main_config.env
           cat .env/main_config.env
