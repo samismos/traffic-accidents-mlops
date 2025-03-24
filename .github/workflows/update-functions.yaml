@@ -10,16 +10,15 @@ on:
           - decision_tree_classifier
           - random_forest_classifier
           - xg_boost
-          - light_gbm
           - mlp
       update-functions:
         type: boolean
         required: false
-        default: true
+        default: false
       update-pipelines:
         type: boolean
         required: false
-        default: true
+        default: false
 
 jobs:
   update-functions:
@@ -44,7 +43,7 @@ jobs:
 
       # Update functions
       - name: Update Functions
-        if: ${{ inputs.update-functions == true }}
+        if: ${{ inputs.update-functions == 'true' }}
         run: python update_functions.py 
 
       # Update Pipelines
