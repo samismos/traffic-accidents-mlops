@@ -16,22 +16,6 @@ MLRUN_API="<insert_your_api_url_here>"
 
 ARTIFACT_BASE_PATH=<insert_your_artifact_base_path_here>
 
-# Build dev environment
-
-Inside the project directory, build the image from the Dockerfile.dev:
-
-```docker build -f Dockerfile.dev -t mlrun-dev .```
-
-The dev environment can be built with the command below:
-
-```docker run -it --rm --network host -v "$PWD":/project --name mlrun-dev mlrun-dev```
-
-_Note: $PWD is a Linux shorthand for current directory, modify accordingly_
-
-Inside the dev environment, you can run the ```main.py``` file which uses the MLRun SDK.
-
-To select an algorithm, modify the ```ALGORITHM``` variable in the ```.env/main_config.env``` file.
-
 ## Available Algorithm Options:
 
 | Algorithm Name | Description                             |
@@ -39,7 +23,6 @@ To select an algorithm, modify the ```ALGORITHM``` variable in the ```.env/main_
 | `decision_tree_classifier`           | Decision Tree - A simple, interpretable classifier based on a tree-like model. |
 | `random_forest_classifier`           | Random Forest - An ensemble method using multiple decision trees to improve accuracy and control overfitting. |
 | `xg_boost`     | XGBoost - A highly efficient and scalable gradient boosting framework.      |
-| `light_gbm`    | LightGBM - A fast, distributed, high-performance gradient boosting framework optimized for large datasets.       |
 | `mlp` | Multi-Layer Perceptron - A class of feedforward artificial neural networks composed of multiple layers of nodes, commonly used for classification and regression tasks. |
 
 The "ALGORITHM" variable in the ```.env/main_config.env``` file is case-insensitive, but needs to match one of the algorithms in this table, as it is mapped directly to the dictionary in ```train_then_evaluate.py```.
@@ -57,3 +40,16 @@ _Note: the <DOCKER_HUB_ID>/<IMAGE_NAME> must exactly match the name of your Dock
 Push image to Docker Hub repository:
 
 ```docker push <YOUR_DOCKER_HUB_ID>/<IMAGE_NAME>:<TAG>```
+
+# Build and run self-hosted runner for Github Actions integration (if applicable)
+
+If you want to use GitHub Actions for CI, but have a locally hosted cluster, you need to schedule jobs on a self-hosted runner inside your cluster. The image is ```images/Dockerfile.runner```. 
+
+Build the image with:
+
+```docker build -t github-runner --build-arg GITHUB_URL=<your_repo_url> --build-arg GITHUB_TOKEN=<your_github_token> .```
+
+
+Start the runner with:
+
+```docker run --rm --network host --name github-runner github-runner```
