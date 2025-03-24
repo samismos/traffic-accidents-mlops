@@ -1,0 +1,26 @@
+name: CI Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Use self-hosted runner
+    runs-on: self-hosted
+    
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Install dependencies
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Run tests
+      - name: Hello world
+        run: echo "Hello World! I'm a self hosted runner"
+
+      # Build the project
+      - name: Run function
+        run: python update_functions.py    
