@@ -31,14 +31,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: "Show main_config.env"
+      - name: Show main_config.env
         run: |
           sed -i "s/^ALGORITHM=.*/ALGORITHM=${{ inputs.algorithm }}/" .env/main_config.env
           cat .env/main_config.env
 
+      - name: Echo inputs
+        run: |
+          echo ${{inputs.update-functions}}
+          echo ${{inputs.update-pipelines}}
+          echo ${{inputs.algorithm}}
+
       # Update functions
       - name: Update Functions
-        if: ${{ inputs.update-functions == 'true' }}
+        if: ${{ inputs.update-functions == true }}
         run: python update_functions.py 
 
       # Update Pipelines
