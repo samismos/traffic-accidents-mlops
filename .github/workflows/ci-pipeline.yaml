@@ -21,7 +21,7 @@ on:
         default: false
 
 jobs:
-  CI Pipeline:
+  ci-pipeline:
     # Use self-hosted runner
     runs-on: self-hosted
     
